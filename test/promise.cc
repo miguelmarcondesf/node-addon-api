@@ -1,4 +1,5 @@
 #include "napi.h"
+#include "test_helper.h"
 
 using namespace Napi;
 
@@ -23,6 +24,22 @@ Value PromiseReturnsCorrectEnv(const CallbackInfo& info) {
   return Boolean::New(info.Env(), deferred.Env() == info.Env());
 }
 
+Value ThenMethodOnFulfilled(const CallbackInfo& info) {
+  auto deferred = Promise::Deferred::New(info.Env());
+  Function onFulfilled = info[0].As<Function>();
+
+  Promise resultPromise = MaybeUnwrap(deferred.Promise().Then(onFulfilled));
+
+  bool isPromise = resultPromise.IsPromise();
+  deferred.Resolve(Number::New(info.Env(), 42));
+
+  Object result = Object::New(info.Env());
+  result["isPromise"] = Boolean::New(info.Env(), isPromise);
+  result["promise"] = resultPromise;
+
+  return result;
+}
+
 Object InitPromise(Env env) {
   Object exports = Object::New(env);
 
@@ -31,6 +48,7 @@ Object InitPromise(Env env) {
   exports["rejectPromise"] = Function::New(env, RejectPromise);
   exports["promiseReturnsCorrectEnv"] =
       Function::New(env, PromiseReturnsCorrectEnv);
+  exports["ThenMethodOnFulfilled"] = Function::New(env, ThenMethodOnFulfilled);
 
   return exports;
 }

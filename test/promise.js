@@ -17,4 +17,10 @@ async function test (binding) {
   rejecting.then(common.mustNotCall()).catch(common.mustCall());
 
   assert(binding.promise.promiseReturnsCorrectEnv());
+
+  const onFulfilled = (value) => value * 2;
+  const result = binding.promise.thenMethodOnFulfilled(onFulfilled);
+  assert.strictEqual(result.isPromise, true);
+  const finalValue = await result.promise;
+  assert.strictEqual(finalValue, 84);
 }

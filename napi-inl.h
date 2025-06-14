@@ -2813,6 +2813,28 @@ inline void Promise::CheckCast(napi_env env, napi_value value) {
 
 inline Promise::Promise(napi_env env, napi_value value) : Object(env, value) {}
 
+inline MaybeOrValue<Promise> Promise::Then(napi_value onFulfilled) const {
+  EscapableHandleScope scope(_env);
+#ifdef NODE_ADDON_API_ENABLE_MAYBE
+  MaybeOrValue<Value> thenMethodMaybe = Get("then");
+  Function thenMethod = thenMethodMaybe.Unwrap().As<Function>();
+#else
+  Function thenMethod = Get("then").As<Function>();
+#endif
+  MaybeOrValue<Value> result = thenMethod.Call(*this, {onFulfilled});
+#ifdef NODE_ADDON_API_ENABLE_MAYBE
+  if (result.IsJust()) {
+    return Just(scope.Escape(result.Unwrap()).As<Promise>());
+  }
+  return Nothing<Promise>();
+#else
+  if (scope.Env().IsExceptionPending()) {
+    return Promise();
+  }
+  return scope.Escape(result).As<Promise>();
+#endif
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Buffer<T> class
 ////////////////////////////////////////////////////////////////////////////////
